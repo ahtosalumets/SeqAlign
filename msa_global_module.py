@@ -1,9 +1,8 @@
-
 import pandas as pd
 import numpy as np
 
 
-def global_msa_sub(align1, align2, subs_mat, gap_penalty):
+def global_msa_sub(align1, align2, subs_mat, gap_penalty, sequence_type):
     '''Global alignment method aka Needleman-Wunsch alignment generalised for MSA'''
 
     # alignments come with list of lists
@@ -29,14 +28,19 @@ def global_msa_sub(align1, align2, subs_mat, gap_penalty):
     df1 = pd.DataFrame(np.zeros((nrow, ncol)), index=rownames, columns=colnames)
 
     # calculate substitution score (each letter against each letter in an alignment position)
-    def calculate_subs_score(align1_pos, align2_pos, subs_mat):
+    def calculate_subs_score(align1_pos, align2_pos, subs_mat, sequence_type):
         subs_score = 0
         for el1 in align1_pos:
             for el2 in align2_pos:
                 if el1 == '_' or el2 == '_':
                     subs_score += gap_penalty
                 else:
-                    subs_score += subs_mat.loc[el1, el2]
+                    if sequence_type == 'protein':
+                        subs_score += subs_mat.loc[el1, el2]
+                    else:
+                        if el1 == el2:
+                            subs_score += 1
+                        else: subs_score -= 1
         return subs_score / (len(align1_pos) * len(align2_pos))
 
     # fill the first row and the first column
@@ -49,8 +53,7 @@ def global_msa_sub(align1, align2, subs_mat, gap_penalty):
     # fill the rest of the table
     for j in range(1, ncol):
         for i in range(1, nrow):
-            subs_score = calculate_subs_score(align1[i - 1], align2[j - 1], subs_mat)
-
+            subs_score = calculate_subs_score(align1[i - 1], align2[j - 1], subs_mat, sequence_type)
             df1.iloc[i, j] = max(df1.iloc[i - 1, j] + gap_penalty,
                                  df1.iloc[i, j - 1] + gap_penalty,
                                  df1.iloc[i - 1, j - 1] + subs_score)
@@ -89,6 +92,7 @@ def global_msa_sub(align1, align2, subs_mat, gap_penalty):
                 i -= 1
 
         # print('\n'.join(get_individual_seqs(reconst_align1, reconst_align2)))
+        
         return reconst_align1[::-1], reconst_align2[::-1]
 
     def combine_reconst_align(reconst1, reconst2):
@@ -108,16 +112,16 @@ def global_msa_sub(align1, align2, subs_mat, gap_penalty):
     return combined
 
 
-def progressive_msa(sequences, aligner, guide_tree, subs_mat, seq_names, gap_penalty):
+def progressive_msa(sequences, aligner, guide_tree, subs_mat, seq_names, gap_penalty, sequence_type):
     node1 = guide_tree.get_left()
     node2 = guide_tree.get_right()
     if node1.is_leaf():
         node1_align = sequences[seq_names[node1.get_id()]]
     else:
-        node1_align = progressive_msa(sequences, aligner, node1, subs_mat, seq_names, gap_penalty)
+        node1_align = progressive_msa(sequences, aligner, node1, subs_mat, seq_names, gap_penalty, sequence_type)
     if node2.is_leaf():
         node2_align = sequences[seq_names[node2.get_id()]]
     else:
-        node2_align = progressive_msa(sequences, aligner, node2, subs_mat, seq_names, gap_penalty)
-    alignment = aligner(node1_align, node2_align, subs_mat, gap_penalty)
+        node2_align = progressive_msa(sequences, aligner, node2, subs_mat, seq_names, gap_penalty, sequence_type)
+    alignment = aligner(node1_align, node2_align, subs_mat, gap_penalty, sequence_type)
     return alignment

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def local_alignment(seqs, subs_mat, gap_penalty):
+def local_alignment(seqs, subs_mat, gap_penalty, sequence_type):
     '''Local alignment method aka alignment Smith-Waterman algorithm'''
 
     # unpack dict
@@ -10,6 +10,7 @@ def local_alignment(seqs, subs_mat, gap_penalty):
     seq2 = seqs_l[1]
 
     # create two matrices (one for storing the values and the other for traceback)
+    
     nrow = len(seq1) + 1
     ncol = len(seq2) + 1
 
@@ -36,13 +37,18 @@ def local_alignment(seqs, subs_mat, gap_penalty):
     max_pos = (1, 1)
     for j in range(1, ncol):
         for i in range(1, nrow):
+            
+            if sequence_type == 'protein':
+                subs_score = subs_mat.loc[seq1[i - 1], seq2[j - 1]]
+            else:
+                if seq1[i - 1] == seq2[j - 1]:
+                    subs_score = 1
+                else: subs_score = -1
 
-            subs_score = subs_mat.loc[seq1[i - 1], seq2[j - 1]]
             # minimal score needs to be 0
-            df1.iloc[i, j] = max(0,
-                                 df1.iloc[i - 1, j] + gap_penalty,
-                                 df1.iloc[i, j - 1] + gap_penalty,
-                                 df1.iloc[i - 1, j - 1] + subs_score)
+            df1.iloc[i, j] = max(0,  df1.iloc[i - 1, j] + gap_penalty,
+                                     df1.iloc[i, j - 1] + gap_penalty,
+                                     df1.iloc[i - 1, j - 1] + subs_score)
 
             # keep track of max position
             if df1.iloc[i, j] > df1.iloc[max_pos[0], max_pos[1]]:
@@ -57,10 +63,12 @@ def local_alignment(seqs, subs_mat, gap_penalty):
                 df2.iloc[i, j] = '←'
             elif df1.iloc[i, j] == (df1.iloc[i, j - 1] + gap_penalty):
                 df2.iloc[i, j] = '↑'
+            
 
     final_score = df1.iloc[max_pos[0], max_pos[1]]
+    print(max_pos[0], max_pos[1])
 
-    print('{0} \n\n {1}'.format(df1, df2))
+    #print('{0} \n\n {1}'.format(df1, df2))
 
 
     def traceback(df, seq1, seq2, max_pos, names_l):
@@ -103,7 +111,8 @@ def local_alignment(seqs, subs_mat, gap_penalty):
         return '\n'.join([names_l[0] + ': ' + ''.join(reconst_seq1[::-1]),
                           names_l[1] + ': ' + ''.join(reconst_seq2[::-1])])
 
-    print('Sequence alignment score:', final_score, '\n')
+    #print('Sequence alignment score:', final_score, '\n')
     traceback_seqs = traceback(df1, seq1, seq2, max_pos, names_l)
 
-    return traceback_seqs
+    #return traceback_seqs
+    return traceback_seqs, '{0} \n\n {1}'.format(df1, df2), final_score
