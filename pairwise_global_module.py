@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def global_alignment(seqs, subs_mat, gap_penalty):
+def global_alignment(seqs, subs_mat, gap_penalty, sequence_type):
     '''Global alignment method aka Needleman-Wunsch alignment'''
 
     # unpack dict
@@ -39,8 +39,12 @@ def global_alignment(seqs, subs_mat, gap_penalty):
     # fill the rest of the table
     for j in range(1, ncol):
         for i in range(1, nrow):
-
-            subs_score = subs_mat.loc[seq1[i - 1], seq2[j - 1]]
+            if sequence_type == 'protein':
+                subs_score = subs_mat.loc[seq1[i - 1], seq2[j - 1]]
+            else:
+                if seq1[i - 1] == seq2[j - 1]:
+                    subs_score = 1
+                else: subs_score = -1
 
             df1.iloc[i, j] = max(df1.iloc[i - 1, j] + gap_penalty,
                                  df1.iloc[i, j - 1] + gap_penalty,
@@ -55,20 +59,18 @@ def global_alignment(seqs, subs_mat, gap_penalty):
 
     final_score = df1.iloc[nrow - 1, ncol - 1]
 
-    print('{0} \n\n {1}'.format(df1, df2))
+    # print('{0} \n\n {1}'.format(df1, df2))
 
     # traceback function (function inside a function to avoid causing problems with a scope)
     def traceback(df, seq1, seq2, names_l):
 
         reconst_seq1 = [seq1[-1]]
         reconst_seq2 = [seq2[-1]]
-
         # i for row number and j for column number
         j = df.shape[1] - 1
         i = df.shape[0] - 1
 
         while i > 1 and j > 1:
-
             # if score in the diagonal is the highest
             if max(df.iloc[i - 1, j - 1], df.iloc[i - 1, j], df.iloc[i, j - 1]) == df.iloc[i - 1, j - 1]:
                 reconst_seq1.append(seq1[i - 2])
@@ -91,9 +93,6 @@ def global_alignment(seqs, subs_mat, gap_penalty):
         return '\n'.join([names_l[0] + ': ' + ''.join(reconst_seq1[::-1]),
                           names_l[1] + ': ' + ''.join(reconst_seq2[::-1])])
 
-    print('Sequence alignment score:', final_score, '\n')
+    # print('Sequence alignment score:', final_score, '\n')
     traceback_seqs = traceback(df1, seq1, seq2, names_l)
-
-    return traceback_seqs
-
-
+    return traceback_seqs, '{0} \n\n {1}'.format(df1, df2), final_score

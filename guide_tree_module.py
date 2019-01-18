@@ -1,15 +1,20 @@
+import os
 import pandas as pd
 import numpy as np
 from scipy.cluster.hierarchy import average, dendrogram, to_tree
+
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from time import gmtime, strftime
 
 
 # guide tree generation given tree will guide
 # the alignment of sequences and alignments
-def generate_guide_tree(seqs, k):
+def generate_guide_tree(seqs, k=3):
     # calculate kmer composition
-    def kmer(seq, k=3):
+    def kmer(seq, k):
         return set([seq[i:i + k] for i in range(len(seq) - (k - 1))])
 
     # calculate distance between two sequences
@@ -22,7 +27,8 @@ def generate_guide_tree(seqs, k):
         return uniq_kmers / len(all_kmers)
 
     # generate distance matrix
-    def dist_matrix(seqs, k):
+    
+    def dist_matrix(seqs, k=3):
         names = list(seqs.keys())
         n = len(names)
         dm = pd.DataFrame(np.zeros((n, n)), index=names, columns=names)
@@ -36,7 +42,9 @@ def generate_guide_tree(seqs, k):
     # kmers between two sequences
     dm = dist_matrix(seqs, k)
 
-    # make condesed distance matrix
+    
+
+    # make condensed distance matrix
     def condensed_dm(dm):
         cdm = []
         n = dm.shape[0]
@@ -51,6 +59,7 @@ def generate_guide_tree(seqs, k):
     # second is between seq1 and seq3 and third one is distance
     # between seq2 and seq3
     cdm = condensed_dm(dm)
+    
 
     def make_guide_tree(cdm, dm):
         guide = average(cdm)
@@ -58,7 +67,9 @@ def generate_guide_tree(seqs, k):
         guide_d = dendrogram(guide, labels=list(dm.columns.values), orientation='right',
                              link_color_func=lambda x: 'black')
         current_time = strftime('%d%m%Y_%H%M%S', gmtime())
-        plt.savefig('guidetree_' + current_time + '.png')
+        if not os.path.isdir('./guide_tree_image'):
+            os.makedirs('./guide_tree_image')
+        plt.savefig('./guide_tree_image/guidetree_' + current_time + '.png')
         return guide_tree
 
     # third step is to make a tree based on
