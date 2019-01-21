@@ -106,16 +106,8 @@ def pretty_print_msa(alignment, sequences, alignment_type, ordered):
         seq_l = []
         for i in range(len(alignment)):
             seq_l.append(alignment[i][j])
-        try:
-            if alignment_type == 'global':
-                seq_name = sequences_inv[''.join(seq_l).replace('_', '')]
-            else:
-                seq_name = ordered[j]
-        # during testing this current version of msa did chop some parts of few seqences
-        # and I couldn't find the bug causing it
-        except:
-            seq_name = 'wrong'
-
+            seq_name = ordered[j]
+            
         # update max len of name and seq for better formatting
         if len(seq_name) > max_len_name:
             max_len_name = len(seq_name)
