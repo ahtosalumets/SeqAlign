@@ -64,7 +64,7 @@ def read_file(file, top):
     with open(file, 'r') as f:
         content = f.readlines()
     n_seqs = len(content) // 2
-    if top < n_seqs:
+    if top != 'all' and top < n_seqs:
         n_seqs = top
     for i in range(0, 2*n_seqs-1, 2):
         seq_name = content[i].strip().replace('>', '')
